@@ -521,12 +521,17 @@
 
   function telaLoja(){
     var busca = (tela.busca||"").toLowerCase().trim(), d = digitos(tela.busca);
+    var texto = busca.replace(/[\d\s()+.-]/g, "");
     var todos = estado.clientes.slice().sort(function(a,b){ return b.em - a.em; });
     var prontos = todos.filter(function(c){ return c.selos >= estado.meta.alvo; });
     var lista = todos;
     if(busca) lista = todos.filter(function(c){
-      if(d.length >= 3) return (c.tel && c.tel.indexOf(d) >= 0) || c.t4.indexOf(d.slice(-4)) >= 0;
-      return c.nome.toLowerCase().indexOf(busca) >= 0;
+      var final = c.t4 || (c.tel ? c.tel.slice(-4) : "");
+      var bateNumero = !d ||
+        (d.length <= 4 ? final.indexOf(d) === 0                     // 4 últimos números (vai filtrando enquanto digita)
+                       : (c.tel && c.tel.indexOf(d) >= 0) || final === d.slice(-4));
+      var bateNome = !texto || c.nome.toLowerCase().indexOf(texto) >= 0;
+      return bateNumero && bateNome;
     });
 
     var h = '<div class="barra"><h2>Administrador</h2><button class="link" data-acao="deslogar">Sair</button></div>';
@@ -538,7 +543,7 @@
     if(prontos.length && !busca) h += '<h3>Já podem levar o grátis</h3><ul class="lista">' + prontos.map(itemHTML).join("") + '</ul>';
 
     h += '<label for="busca">Procurar cliente</label>' +
-         '<input id="busca" type="search" placeholder="Nome ou telefone" value="' + escapar(tela.busca||"") + '" data-busca>';
+         '<input id="busca" type="search" placeholder="Nome, telefone ou 4 últimos números" inputmode="search" value="' + escapar(tela.busca||"") + '" data-busca>';
 
     if(!todos.length) h += '<p>Ninguém por aqui ainda. Na primeira venda, toque em “Cadastrar cliente”.</p>';
     else if(!lista.length) h += '<p>Não achei ninguém com esse nome ou número.</p>';
